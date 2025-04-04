@@ -58,9 +58,9 @@ def send_email(email, language):
     """
     try:
         if language == "ru":
-            subject = "Подключайтесь к эфиру и выиграйте Iphone16 🎁 Уже завтра — BI Ecosystem! "
+            subject = "Завтра встречаемся на BI Ecosystem — ждём Вас!"
         else:
-            subject = "Эфирге қосылып, Iphone16 ұтып алыңыз🎁 Ертең BI Ecosystem болады! "
+            subject = "Сәлеметсіз бе! Ертең осы жылдың ең ірі оқиғасы — BI Ecosystem-де кездесеміз."
 
         msg = EmailMessage()
         msg["From"] = "noreply@biecosystem.kz"
@@ -115,38 +115,36 @@ def send_email(email, language):
         return False
 
 def process_new_guests():
+    """
+    Iterates through rows in the Google Sheet.
+    Expects:
+      - Column B (index 1): Email address.
+      - Column D (index 3): Language ("ru" or "kz").
+      - Column K (index 10): Status.
+    If status is not "Done", sends an email and then marks status as "Done" in column K.
+    Sends one email every 2 seconds.
+    """
     try:
         all_values = sheet.get_all_values()
-        # Collect updates in a list
-        updates = []
-        # Skip header row (start at row index 1)
+        # Skip header row; start at row index 1
         for i in range(1, len(all_values)):
             row = all_values[i]
             if len(row) < 11:
                 continue
 
-            email = row[1].strip()            # Column B
-            language = row[3].strip().lower()  # Column D
-            status = row[10].strip().lower()   # Column K
+            email = row[1].strip()               # Column B
+            language = row[3].strip().lower()     # Column D
+            status = row[10].strip().lower()       # Column K
 
             if status == "done":
                 continue
 
             if send_email(email, language):
-                # Instead of calling update_cell here, add the update info to the list
-                updates.append({
-                    "range": f"K{i+1}",
-                    "values": [["Done"]]
-                })
+                # Update status to "Done" in column K (11th column)
+                sheet.update_cell(i + 1, 11, "Done")
 
-        # Batch update all at once (if there are updates)
-        if updates:
-            sheet.batch_update(updates)
-
-    except Exception as e:
-        print(f"[Error] processing guests: {e}")
-        traceback.print_exc()
-
+            # Wait 2 seconds before sending the next email
+            time.sleep(2)
 
     except Exception as e:
         print(f"[Error] processing guests: {e}")
