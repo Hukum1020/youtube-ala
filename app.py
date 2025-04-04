@@ -115,32 +115,38 @@ def send_email(email, language):
         return False
 
 def process_new_guests():
-    """
-    Iterates through rows in the Google Sheet.
-    Expects:
-      - Column B (index 1): Email address.
-      - Column D (index 3): Language ("ru" or "kz").
-      - Column K (index 10): Status.
-    If status is not "Done", sends an email and then marks status as "Done" in column K.
-    """
     try:
         all_values = sheet.get_all_values()
-        # Skip header row; start at row index 1
+        # Collect updates in a list
+        updates = []
+        # Skip header row (start at row index 1)
         for i in range(1, len(all_values)):
             row = all_values[i]
             if len(row) < 11:
                 continue
 
-            email = row[1].strip()      # Column B
+            email = row[1].strip()            # Column B
             language = row[3].strip().lower()  # Column D
-            status = row[10].strip().lower()     # Column K
+            status = row[10].strip().lower()   # Column K
 
             if status == "done":
                 continue
 
             if send_email(email, language):
-                # Update status to "Done" in column K (11th column)
-                sheet.update_cell(i + 1, 11, "Done")
+                # Instead of calling update_cell here, add the update info to the list
+                updates.append({
+                    "range": f"K{i+1}",
+                    "values": [["Done"]]
+                })
+
+        # Batch update all at once (if there are updates)
+        if updates:
+            sheet.batch_update(updates)
+
+    except Exception as e:
+        print(f"[Error] processing guests: {e}")
+        traceback.print_exc()
+
 
     except Exception as e:
         print(f"[Error] processing guests: {e}")
