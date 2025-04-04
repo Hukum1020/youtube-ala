@@ -58,9 +58,9 @@ def send_email(email, language):
     """
     try:
         if language == "ru":
-            subject = "Подключайтесь к эфиру и выиграйте Iphone16 🎁 Уже завтра — BI Ecosystem! "
+            subject = "Завтра встречаемся на BI Ecosystem — ждём Вас!"
         else:
-            subject = "Эфирге қосылып, Iphone16 ұтып алыңыз🎁 Ертең BI Ecosystem болады! "
+            subject = "Сәлеметсіз бе! Ертең осы жылдың ең ірі оқиғасы — BI Ecosystem-де кездесеміз."
 
         msg = EmailMessage()
         msg["From"] = "noreply@biecosystem.kz"
@@ -122,11 +122,10 @@ def process_new_guests():
       - Column D (index 3): Language ("ru" or "kz").
       - Column K (index 10): Status.
     If status is not "Done", sends an email and then marks status as "Done" in column K.
-    Sends one email every 2 seconds, and batches status updates to reduce write requests.
+    Sends one email every 0.5 seconds.
     """
     try:
         all_values = sheet.get_all_values()
-        updates = []  # Batch update list for status updates
         # Skip header row; start at row index 1
         for i in range(1, len(all_values)):
             row = all_values[i]
@@ -141,17 +140,11 @@ def process_new_guests():
                 continue
 
             if send_email(email, language):
-                updates.append({
-                    "range": f"K{i+1}",
-                    "values": [["Done"]]
-                })
+                # Update status to "Done" in column K (11th column)
+                sheet.update_cell(i + 1, 11, "Done")
 
-            # Wait 2 seconds before processing the next email
-            time.sleep(2)
-
-        # Perform batch update if there are any status updates to apply
-        if updates:
-            sheet.batch_update(updates)
+            # Wait 0.5 seconds before processing the next email
+            time.sleep(1.5)
 
     except Exception as e:
         print(f"[Error] processing guests: {e}")
