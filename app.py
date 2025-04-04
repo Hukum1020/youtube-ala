@@ -31,7 +31,7 @@ if not CREDENTIALS_JSON:
 
 try:
     creds_dict = json.loads(CREDENTIALS_JSON)
-    # Fix the private key formatting
+    # Fix private key formatting
     creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n").strip()
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, SCOPE)
     client = gspread.authorize(creds)
@@ -54,14 +54,13 @@ def send_email(email, language):
     """
     Sends an email using an HTML template.
     - 'email' is the recipient's address (from column B).
-    - 'language' (from column D) is used to choose the subject and template.
+    - 'language' (from column D) determines the subject and template.
     """
     try:
-        # Choose subject based on language
         if language == "ru":
-            subject = "Подключайтесь к эфиру и выиграйте Iphone16 🎁 Уже завтра — BI Ecosystem!"
+            subject = "Завтра встречаемся на BI Ecosystem — ждём Вас!"
         else:
-            subject = "Эфирге қосылып, Iphone16 ұтып алыңыз🎁 Ертең BI Ecosystem болады!"
+            subject = "Сәлеметсіз бе! Ертең осы жылдың ең ірі оқиғасы — BI Ecosystem-де кездесеміз."
 
         msg = EmailMessage()
         msg["From"] = "noreply@biecosystem.kz"
@@ -69,7 +68,7 @@ def send_email(email, language):
         msg["Subject"] = subject
         msg.set_type("multipart/related")
 
-        # Load HTML template (e.g., AlaRu.html or AlaKz.html)
+        # Load HTML template (AlaRu.html or AlaKz.html)
         template_filename = f"Ala{language}.html"
         if os.path.exists(template_filename):
             with open(template_filename, "r", encoding="utf-8") as template_file:
@@ -86,16 +85,21 @@ def send_email(email, language):
         logo_path = "logo2.png"
         if os.path.exists(logo_path):
             with open(logo_path, "rb") as logo_file:
-                msg.add_related(logo_file.read(), maintype="image", subtype="png",
-                                filename="logo2.png", cid="logo")
+                msg.add_related(
+                    logo_file.read(),
+                    maintype="image",
+                    subtype="png",
+                    filename="logo2.png",
+                    cid="logo"
+                )
             html_content = html_content.replace('src="logo2.png"', 'src="cid:logo"')
         else:
             print("⚠️ Logo not found. Sending email without logo.")
 
-        # Add HTML content as alternative
+        # Add HTML content
         msg.add_alternative(html_content, subtype="html")
 
-        # Send the email using SMTP
+        # Send the email
         context = ssl.create_default_context()
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
             server.starttls(context=context)
@@ -116,28 +120,27 @@ def process_new_guests():
     Expects:
       - Column B (index 1): Email address.
       - Column D (index 3): Language ("ru" or "kz").
-      - Column L (index 11): Status.
-    If status is not "Done", sends an email and marks the status as "Done."
+      - Column K (index 10): Status.
+    If status is not "Done", sends an email and then marks status as "Done" in column K.
     """
     try:
         all_values = sheet.get_all_values()
-        # Start from row 2 (index 1) to skip headers
+        # Skip header row; start at row index 1
         for i in range(1, len(all_values)):
             row = all_values[i]
-            # Ensure the row has at least 12 columns
-            if len(row) < 12:
+            if len(row) < 11:
                 continue
 
-            email = row[1].strip()    # Column B
+            email = row[1].strip()      # Column B
             language = row[3].strip().lower()  # Column D
-            status = row[11].strip().lower()   # Column L
+            status = row[10].strip().lower()     # Column K
 
             if status == "done":
                 continue
 
             if send_email(email, language):
-                # Update the status in column L to "Done"
-                sheet.update_cell(i + 1, 12, "Done")
+                # Update status to "Done" in column K (11th column)
+                sheet.update_cell(i + 1, 11, "Done")
 
     except Exception as e:
         print(f"[Error] processing guests: {e}")
