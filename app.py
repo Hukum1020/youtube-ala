@@ -143,9 +143,6 @@ def process_new_guests():
                 # Update status to "Done" in column K (11th column)
                 sheet.update_cell(i + 1, 11, "Done")
 
-            # Wait 2 seconds before sending the next email
-            time.sleep(2)
-
     except Exception as e:
         print(f"[Error] processing guests: {e}")
         traceback.print_exc()
