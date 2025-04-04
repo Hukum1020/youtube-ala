@@ -42,7 +42,7 @@ except Exception as e:
 # ------------------------------
 # SMTP Setup
 # ------------------------------
-SMTP_SERVER = "smtp-relay.brevo.com"  # Or your preferred SMTP server
+SMTP_SERVER = "smtp-relay.brevo.com"  # or your preferred SMTP server
 SMTP_PORT = 587
 SMTP_USER = os.getenv("SMTP_USER")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
@@ -50,21 +50,27 @@ SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 if not SMTP_USER or not SMTP_PASSWORD:
     raise ValueError("❌ SMTP_USER or SMTP_PASSWORD not found!")
 
-def send_email(email):
+def send_email(email, language):
     """
-    Sends an email using an HTML template (Ala.html).
-    Assumes 'email' is the recipient's email address.
+    Sends an email using an HTML template.
+    - 'email' is the recipient's address (from column B).
+    - 'language' (from column D) is used to choose the subject and template.
     """
     try:
-        subject = "Завтра встречаемся на BI Ecosystem — ждём Вас!"
+        # Choose subject based on language
+        if language == "ru":
+            subject = "Подключайтесь к эфиру и выиграйте Iphone16 🎁 Уже завтра — BI Ecosystem!"
+        else:
+            subject = "Эфирге қосылып, Iphone16 ұтып алыңыз🎁 Ертең BI Ecosystem болады!"
+
         msg = EmailMessage()
         msg["From"] = "noreply@biecosystem.kz"
         msg["To"] = email
         msg["Subject"] = subject
         msg.set_type("multipart/related")
 
-        # Load the HTML template
-        template_filename = "Ala.html"
+        # Load HTML template (e.g., AlaRu.html or AlaKz.html)
+        template_filename = f"Ala{language}.html"
         if os.path.exists(template_filename):
             with open(template_filename, "r", encoding="utf-8") as template_file:
                 html_content = template_file.read()
@@ -72,29 +78,24 @@ def send_email(email):
             print(f"❌ Template file {template_filename} not found.")
             return False
 
-        # Insert a unique placeholder (optional)
+        # Insert a unique identifier (optional)
         unique_id = random.randint(100000, 999999)
         html_content = html_content.replace("<!--UNIQUE_PLACEHOLDER-->", str(unique_id))
 
-        # Embed logo if it exists
+        # Embed logo if available
         logo_path = "logo2.png"
         if os.path.exists(logo_path):
             with open(logo_path, "rb") as logo_file:
-                msg.add_related(
-                    logo_file.read(),
-                    maintype="image",
-                    subtype="png",
-                    filename="logo2.png",
-                    cid="logo"
-                )
+                msg.add_related(logo_file.read(), maintype="image", subtype="png",
+                                filename="logo2.png", cid="logo")
             html_content = html_content.replace('src="logo2.png"', 'src="cid:logo"')
         else:
             print("⚠️ Logo not found. Sending email without logo.")
 
-        # Add HTML content
+        # Add HTML content as alternative
         msg.add_alternative(html_content, subtype="html")
 
-        # Send the email
+        # Send the email using SMTP
         context = ssl.create_default_context()
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
             server.starttls(context=context)
@@ -111,27 +112,16 @@ def send_email(email):
 
 def process_new_guests():
     """
-    Checks each row in the Google Sheet.
-    Columns in your doc:
-        A -> Name
-        B -> Email  (index 1)
-        C -> Phone
-        D -> language
-        E -> Checkbox
-        F -> referr
-        G -> formId
-        H -> sent
-        I -> requestID
-        J -> dbbase
-        K -> admin
-        L -> status (index 11)
-
-    If 'status' (column L) is not "Done", send an email to 'Email' (column B),
-    then mark 'status' as "Done" in column L.
+    Iterates through rows in the Google Sheet.
+    Expects:
+      - Column B (index 1): Email address.
+      - Column D (index 3): Language ("ru" or "kz").
+      - Column L (index 11): Status.
+    If status is not "Done", sends an email and marks the status as "Done."
     """
     try:
         all_values = sheet.get_all_values()
-        # Skip the header row (starting from index 1)
+        # Start from row 2 (index 1) to skip headers
         for i in range(1, len(all_values)):
             row = all_values[i]
             # Ensure the row has at least 12 columns
@@ -139,15 +129,14 @@ def process_new_guests():
                 continue
 
             email = row[1].strip()    # Column B
-            status = row[11].strip().lower()  # Column L
+            language = row[3].strip().lower()  # Column D
+            status = row[11].strip().lower()   # Column L
 
-            # If status is already "Done", skip
             if status == "done":
                 continue
 
-            # Attempt to send the email
-            if send_email(email):
-                # Update the status to "Done" in column L (12th column)
+            if send_email(email, language):
+                # Update the status in column L to "Done"
                 sheet.update_cell(i + 1, 12, "Done")
 
     except Exception as e:
