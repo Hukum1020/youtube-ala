@@ -118,14 +118,15 @@ def process_new_guests():
     """
     Iterates through rows in the Google Sheet.
     Expects:
-      - Column B (index 1): Email address..
+      - Column B (index 1): Email address.
       - Column D (index 3): Language ("ru" or "kz").
       - Column K (index 10): Status.
     If status is not "Done", sends an email and then marks status as "Done" in column K.
-    Sends one email every 2 seconds.
+    Sends one email every 2 seconds, and batches status updates to reduce write requests.
     """
     try:
         all_values = sheet.get_all_values()
+        updates = []  # Batch update list for status updates
         # Skip header row; start at row index 1
         for i in range(1, len(all_values)):
             row = all_values[i]
@@ -140,8 +141,17 @@ def process_new_guests():
                 continue
 
             if send_email(email, language):
-                # Update status to "Done" in column K (11th column)
-                sheet.update_cell(i + 1, 11, "Done")
+                updates.append({
+                    "range": f"K{i+1}",
+                    "values": [["Done"]]
+                })
+
+            # Wait 2 seconds before processing the next email
+            time.sleep(2)
+
+        # Perform batch update if there are any status updates to apply
+        if updates:
+            sheet.batch_update(updates)
 
     except Exception as e:
         print(f"[Error] processing guests: {e}")
