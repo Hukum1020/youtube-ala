@@ -58,9 +58,9 @@ def send_email(email, language):
     """
     try:
         if language == "ru":
-            subject = "Завтра встречаемся на BI Ecosystem — ждём Вас!"
+            subject = "Подключайтесь к эфиру и выиграйте Iphone16 🎁 Уже завтра — BI Ecosystem! "
         else:
-            subject = "Сәлеметсіз бе! Ертең осы жылдың ең ірі оқиғасы — BI Ecosystem-де кездесеміз."
+            subject = "Эфирге қосылып, Iphone16 ұтып алыңыз🎁 Ертең BI Ecosystem болады! "
 
         msg = EmailMessage()
         msg["From"] = "noreply@biecosystem.kz"
