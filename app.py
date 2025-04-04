@@ -118,7 +118,7 @@ def process_new_guests():
     """
     Iterates through rows in the Google Sheet.
     Expects:
-      - Column B (index 1): Email address.
+      - Column B (index 1): Email address..
       - Column D (index 3): Language ("ru" or "kz").
       - Column K (index 10): Status.
     If status is not "Done", sends an email and then marks status as "Done" in column K.
