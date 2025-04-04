@@ -144,7 +144,7 @@ def process_new_guests():
                 sheet.update_cell(i + 1, 11, "Done")
 
             # Wait 0.5 seconds before processing the next email
-            time.sleep(1.5)
+            time.sleep(1)
 
     except Exception as e:
         print(f"[Error] processing guests: {e}")
@@ -160,7 +160,7 @@ def background_task():
         except Exception as e:
             print(f"[Error] in background task: {e}")
             traceback.print_exc()
-        time.sleep(30)
+        time.sleep(10)
 
 # Start the background task
 threading.Thread(target=background_task, daemon=True).start()
